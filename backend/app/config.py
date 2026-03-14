@@ -1,11 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "statflow"
 
-    secret_key: str = "change-this-to-a-random-secret-key"
+    secret_key: SecretStr
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
