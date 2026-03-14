@@ -64,31 +64,3 @@ cp .env.example .env
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Environment Variables
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MONGODB_URL` | `mongodb://localhost:27017` | MongoDB connection string |
-| `DATABASE_NAME` | `statflow` | MongoDB database name |
-| `SECRET_KEY` | *(must change)* | Secret used to sign JWTs |
-| `ALGORITHM` | `HS256` | JWT signing algorithm |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | JWT lifetime in minutes |
-| `ALLOWED_ORIGINS` | `http://localhost:5173,...` | Comma-separated CORS origins |
-
-## API Endpoints
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/health` | No | Health check |
-| POST | `/api/auth/register` | No | Register a new user |
-| POST | `/api/auth/login` | No | Login and receive a JWT |
-| GET | `/api/data/` | No | List all datasets |
-| POST | `/api/data/` | JWT | Add a new dataset |
-| PUT | `/api/data/{id}` | JWT | Update a dataset |
-| DELETE | `/api/data/{id}` | JWT | Delete a dataset |
-
-Interactive docs (Swagger UI) are available at **http://localhost:8000/docs**.
-
-## Running Tests
-```bash
-# From the backend/ directory
-pytest
-```
