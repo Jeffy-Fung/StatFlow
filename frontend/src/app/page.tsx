@@ -13,15 +13,15 @@ export default function Home() {
             <a href="#features" className="hover:text-zinc-900 dark:hover:text-white">
               Features
             </a>
-            <a href="#" className="hover:text-zinc-900 dark:hover:text-white">
+            <button type="button" className="hover:text-zinc-900 dark:hover:text-white">
               Docs
-            </a>
-            <a
-              href="#"
+            </button>
+            <button
+              type="button"
               className="rounded-full bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
               Get Started
-            </a>
+            </button>
           </nav>
         </div>
       </header>
@@ -38,12 +38,12 @@ export default function Home() {
           datasets with ease.
         </p>
         <div className="flex gap-4">
-          <a
-            href="#"
+          <button
+            type="button"
             className="rounded-full bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700"
           >
             Start Analyzing
-          </a>
+          </button>
           <a
             href="#features"
             className="rounded-full border border-zinc-300 px-6 py-3 font-medium text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
