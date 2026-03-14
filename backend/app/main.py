@@ -1,14 +1,25 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import auth, data
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from app.database import db, client
+    await db["users"].create_index("username", unique=True)
+    yield
+    client.close()
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="StatFlow API",
     description="Automated Statistical Analysis API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS

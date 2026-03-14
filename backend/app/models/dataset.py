@@ -1,5 +1,6 @@
 from app.database import db
 from bson import ObjectId
+from bson.errors import InvalidId
 from datetime import datetime, timezone
 
 
@@ -23,9 +24,13 @@ async def create_dataset(payload: dict, owner: str) -> dict:
     return payload
 
 
-async def update_dataset(dataset_id: str, payload: dict) -> dict | None:
+async def update_dataset(dataset_id: str, payload: dict, owner: str) -> dict | None:
+    try:
+        oid = ObjectId(dataset_id)
+    except InvalidId:
+        return None
     result = await db["datasets"].find_one_and_update(
-        {"_id": ObjectId(dataset_id)},
+        {"_id": oid, "owner": owner},
         {"$set": payload},
         return_document=True,
     )
@@ -34,6 +39,10 @@ async def update_dataset(dataset_id: str, payload: dict) -> dict | None:
     return result
 
 
-async def delete_dataset(dataset_id: str) -> bool:
-    result = await db["datasets"].delete_one({"_id": ObjectId(dataset_id)})
+async def delete_dataset(dataset_id: str, owner: str) -> bool:
+    try:
+        oid = ObjectId(dataset_id)
+    except InvalidId:
+        return False
+    result = await db["datasets"].delete_one({"_id": oid, "owner": owner})
     return result.deleted_count == 1

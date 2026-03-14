@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.models.dataset import (
     create_dataset,
@@ -34,7 +34,7 @@ async def modify_dataset(
     current_user: dict = Depends(get_current_user),
 ):
     """Update an existing dataset. Requires authentication."""
-    updated = await update_dataset(dataset_id, payload.model_dump(exclude_none=True))
+    updated = await update_dataset(dataset_id, payload.model_dump(exclude_none=True), owner=current_user["username"])
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     return updated
@@ -46,6 +46,7 @@ async def remove_dataset(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a specified dataset. Requires authentication."""
-    deleted = await delete_dataset(dataset_id)
+    deleted = await delete_dataset(dataset_id, owner=current_user["username"])
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
