@@ -72,22 +72,35 @@ async def upload_dataset(
             detail="Only CSV files are supported",
         )
 
-    raw = await file.read()
-    if len(raw) > _MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File exceeds the 10 MB size limit",
-        )
+    # Stream-read with an enforced cap to avoid loading oversized uploads into memory
+    _CHUNK_SIZE = 64 * 1024  # 64 KB
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(_CHUNK_SIZE)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File exceeds the 10 MB size limit",
+            )
+        chunks.append(chunk)
+    raw = b"".join(chunks)
 
+    # Use utf-8-sig to transparently strip the BOM that Excel adds to CSV exports
     try:
-        text = raw.decode("utf-8")
+        text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be UTF-8 encoded",
         )
 
-    reader = csv.DictReader(io.StringIO(text))
+    # _EXTRA_KEY sentinel lets us detect rows that have more fields than the header
+    _EXTRA_KEY = "__extra__"
+    reader = csv.DictReader(io.StringIO(text), restkey=_EXTRA_KEY)
     columns = reader.fieldnames
     if not columns:
         raise HTTPException(
@@ -95,7 +108,23 @@ async def upload_dataset(
             detail="CSV file must contain a header row",
         )
 
-    rows = [dict(row) for row in reader]
+    # MongoDB rejects field names that start with '$' or contain '.'
+    invalid = [c for c in columns if c.startswith("$") or "." in c]
+    if invalid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid column name(s): {', '.join(invalid)}. "
+                   "Column names must not start with '$' or contain '.'",
+        )
+
+    rows: list[dict] = []
+    for i, row in enumerate(reader, start=2):
+        if _EXTRA_KEY in row:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Row {i} has more fields than the header row",
+            )
+        rows.append(dict(row))
 
     payload = {
         "name": name,

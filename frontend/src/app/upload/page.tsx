@@ -139,10 +139,11 @@ export default function UploadPage() {
             <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Sign in to upload</h2>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="login-username" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Username
                 </label>
                 <input
+                  id="login-username"
                   type="text"
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
@@ -151,10 +152,11 @@ export default function UploadPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Password
                 </label>
                 <input
+                  id="login-password"
                   type="password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
@@ -184,10 +186,11 @@ export default function UploadPage() {
             <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Upload a CSV file</h2>
             <form onSubmit={handleUpload} className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="dataset-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Dataset name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="dataset-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -197,10 +200,11 @@ export default function UploadPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="dataset-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Description
                 </label>
                 <textarea
+                  id="dataset-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -208,10 +212,11 @@ export default function UploadPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="dataset-file" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   CSV file <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="dataset-file"
                   ref={fileRef}
                   type="file"
                   accept=".csv"
