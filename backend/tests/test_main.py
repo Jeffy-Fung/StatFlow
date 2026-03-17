@@ -247,3 +247,97 @@ async def test_delete_dataset_non_owner_gets_404(monkeypatch):
         )
     assert response.status_code == 404
 
+
+# ---------------------------------------------------------------------------
+# CSV upload
+# ---------------------------------------------------------------------------
+
+_VALID_CSV = b"age,score\n25,88\n30,92\n"
+
+
+@pytest.mark.asyncio
+async def test_upload_dataset_happy_path(monkeypatch):
+    import app.routers.data as data_router
+    import app.auth as auth_module
+
+    async def mock_get_user(username):
+        return {"username": "alice"}
+
+    async def mock_create(payload, owner):
+        return {
+            "_id": "abc123",
+            "name": payload["name"],
+            "description": payload.get("description"),
+            "owner": owner,
+            "created_at": "2024-01-01T00:00:00",
+            "columns": payload["columns"],
+            "row_count": payload["row_count"],
+        }
+
+    monkeypatch.setattr(auth_module, "get_user_by_username", mock_get_user)
+    monkeypatch.setattr(data_router, "create_dataset", mock_create)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/data/upload",
+            headers=_bearer("alice"),
+            files={"file": ("data.csv", _VALID_CSV, "text/csv")},
+            data={"name": "My Dataset", "description": "test"},
+        )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["columns"] == ["age", "score"]
+    assert body["row_count"] == 2
+    assert body["owner"] == "alice"
+
+
+@pytest.mark.asyncio
+async def test_upload_dataset_no_token():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/data/upload",
+            files={"file": ("data.csv", _VALID_CSV, "text/csv")},
+            data={"name": "My Dataset"},
+        )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_upload_dataset_wrong_file_type(monkeypatch):
+    import app.auth as auth_module
+
+    async def mock_get_user(username):
+        return {"username": "alice"}
+
+    monkeypatch.setattr(auth_module, "get_user_by_username", mock_get_user)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/data/upload",
+            headers=_bearer("alice"),
+            files={"file": ("data.txt", b"hello", "text/plain")},
+            data={"name": "My Dataset"},
+        )
+    assert response.status_code == 400
+    assert "CSV" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_upload_dataset_empty_csv(monkeypatch):
+    import app.auth as auth_module
+
+    async def mock_get_user(username):
+        return {"username": "alice"}
+
+    monkeypatch.setattr(auth_module, "get_user_by_username", mock_get_user)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/data/upload",
+            headers=_bearer("alice"),
+            files={"file": ("empty.csv", b"", "text/csv")},
+            data={"name": "My Dataset"},
+        )
+    assert response.status_code == 400
+    assert "header" in response.json()["detail"].lower()
+
