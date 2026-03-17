@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -16,12 +18,12 @@ export default function Home() {
             <button type="button" className="hover:text-zinc-900 dark:hover:text-white">
               Docs
             </button>
-            <button
-              type="button"
+            <Link
+              href="/upload"
               className="rounded-full bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
               Get Started
-            </button>
+            </Link>
           </nav>
         </div>
       </header>
@@ -38,12 +40,12 @@ export default function Home() {
           datasets with ease.
         </p>
         <div className="flex gap-4">
-          <button
-            type="button"
+          <Link
+            href="/upload"
             className="rounded-full bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700"
           >
             Start Analyzing
-          </button>
+          </Link>
           <a
             href="#features"
             className="rounded-full border border-zinc-300 px-6 py-3 font-medium text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
