@@ -2,6 +2,7 @@ from app.database import db
 from bson import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime, timezone
+from pymongo import ReturnDocument
 
 
 async def get_all_datasets() -> list[dict]:
@@ -32,7 +33,7 @@ async def update_dataset(dataset_id: str, payload: dict, owner: str) -> dict | N
     result = await db["datasets"].find_one_and_update(
         {"_id": oid, "owner": owner},
         {"$set": payload},
-        return_document=True,
+        return_document=ReturnDocument.AFTER,
     )
     if result:
         result["_id"] = str(result["_id"])
