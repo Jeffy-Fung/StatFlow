@@ -20,5 +20,7 @@ class DatasetResponse(DatasetBase):
     id: str = Field(..., alias="_id")
     owner: str
     created_at: str
+    columns: Optional[list[str]] = None
+    row_count: Optional[int] = None
 
     model_config = {"populate_by_name": True}
