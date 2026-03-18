@@ -5,6 +5,19 @@ from datetime import datetime, timezone
 from pymongo import ReturnDocument
 
 
+async def get_dataset_by_id(dataset_id: str) -> dict | None:
+    try:
+        oid = ObjectId(dataset_id)
+    except InvalidId:
+        return None
+    doc = await db["datasets"].find_one({"_id": oid})
+    if doc:
+        doc["_id"] = str(doc["_id"])
+        if isinstance(doc.get("created_at"), datetime):
+            doc["created_at"] = doc["created_at"].isoformat()
+    return doc
+
+
 async def get_all_datasets() -> list[dict]:
     cursor = db["datasets"].find()
     datasets = []
