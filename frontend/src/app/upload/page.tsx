@@ -15,6 +15,33 @@ interface UploadResult {
   row_count: number;
 }
 
+interface TTestResult {
+  test: string;
+  column_a: string;
+  column_b: string;
+  n_a: number;
+  n_b: number;
+  mean_a: number;
+  mean_b: number;
+  t_statistic: number;
+  p_value: number;
+  significant: boolean;
+}
+
+interface AnalysisTestEntry {
+  status: "success" | "error";
+  result?: TTestResult;
+  test?: string;
+  message?: string;
+}
+
+interface AnalysisResult {
+  dataset_id: string;
+  columns: string[];
+  tests_run: number;
+  results: AnalysisTestEntry[];
+}
+
 export default function UploadPage() {
   // Auth state
   const [token, setToken] = useState("");
@@ -30,6 +57,11 @@ export default function UploadPage() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [result, setResult] = useState<UploadResult | null>(null);
+
+  // Analysis state
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -99,15 +131,51 @@ export default function UploadPage() {
 
       const data: UploadResult = await res.json();
       setResult(data);
+      setAnalysis(null);
+      setAnalysisError("");
       setName("");
       setDescription("");
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
+
+      // Auto-run analysis when exactly 2 columns are detected
+      if (data.columns.length === 2) {
+        await runAnalysis(data._id);
+      }
     } catch {
       setUploadError("Could not reach the server");
     } finally {
       setUploadLoading(false);
     }
+  }
+
+  async function runAnalysis(datasetId: string) {
+    setAnalysisLoading(true);
+    setAnalysisError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/analysis/run/${datasetId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setAnalysisError(body.detail ?? "Analysis failed");
+        return;
+      }
+      const data: AnalysisResult = await res.json();
+      setAnalysis(data);
+    } catch {
+      setAnalysisError("Could not reach the server");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
+  function handleSignOut() {
+    setToken("");
+    setResult(null);
+    setAnalysis(null);
+    setAnalysisError("");
   }
 
   return (
@@ -121,7 +189,7 @@ export default function UploadPage() {
           {token && (
             <button
               type="button"
-              onClick={() => { setToken(""); setResult(null); }}
+              onClick={handleSignOut}
               className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
             >
               Sign out
@@ -266,6 +334,77 @@ export default function UploadPage() {
               <dt className="font-medium text-zinc-600 dark:text-zinc-400">ID</dt>
               <dd className="font-mono text-xs text-zinc-700 dark:text-zinc-300">{result._id}</dd>
             </dl>
+          </section>
+        )}
+
+        {/* ── Analysis loading ────────────────────────────────────────────── */}
+        {analysisLoading && (
+          <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20">
+            <p className="text-sm text-blue-700 dark:text-blue-300">Running statistical analysis…</p>
+          </section>
+        )}
+
+        {/* ── Analysis error ──────────────────────────────────────────────── */}
+        {analysisError && (
+          <section className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+            <p className="text-sm text-red-600 dark:text-red-400">{analysisError}</p>
+          </section>
+        )}
+
+        {/* ── Analysis results ────────────────────────────────────────────── */}
+        {analysis && analysis.tests_run > 0 && (
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
+              📊 Statistical Analysis
+            </h2>
+            {analysis.results.map((entry, idx) => {
+              if (entry.status === "error") {
+                return (
+                  <p key={idx} className="text-sm text-red-600 dark:text-red-400">
+                    {entry.test}: {entry.message}
+                  </p>
+                );
+              }
+              const r = entry.result!;
+              return (
+                <div key={idx}>
+                  <p className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                    {r.test.replace(/_/g, " ")}
+                  </p>
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <dt className="font-medium text-zinc-600 dark:text-zinc-400">Column A</dt>
+                    <dd className="text-zinc-900 dark:text-white">{r.column_a} (n={r.n_a}, mean={r.mean_a})</dd>
+                    <dt className="font-medium text-zinc-600 dark:text-zinc-400">Column B</dt>
+                    <dd className="text-zinc-900 dark:text-white">{r.column_b} (n={r.n_b}, mean={r.mean_b})</dd>
+                    <dt className="font-medium text-zinc-600 dark:text-zinc-400">t-statistic</dt>
+                    <dd className="font-mono text-zinc-900 dark:text-white">{r.t_statistic}</dd>
+                    <dt className="font-medium text-zinc-600 dark:text-zinc-400">p-value</dt>
+                    <dd className="font-mono text-zinc-900 dark:text-white">{r.p_value}</dd>
+                    <dt className="font-medium text-zinc-600 dark:text-zinc-400">Significant (α=0.05)</dt>
+                    <dd>
+                      {r.significant ? (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
+                          No
+                        </span>
+                      )}
+                    </dd>
+                  </dl>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {/* ── Analysis: no applicable tests ───────────────────────────────── */}
+        {analysis && analysis.tests_run === 0 && (
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              No automated tests could be applied to this dataset (e.g. t-test requires exactly 2 numeric columns).
+            </p>
           </section>
         )}
       </main>
